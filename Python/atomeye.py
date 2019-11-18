@@ -147,8 +147,8 @@ def _tmp_pkg(dir=None):
             os.rmdir(path)
         except:
             break
-    init = file(os.path.join(path, '__init__.py'), 'w')
-    init.close()
+    with open(os.path.join(path, '__init__.py'), 'w') as init:
+        pass
 
     # remove directory at exit
     atexit.register(shutil.rmtree, path)
@@ -352,7 +352,7 @@ class AtomEyeViewer(object):
         self._module_id = self._atomeye.count
         self._window_id = len([ viewer for viewer in viewers if viewer[0] == self._module_id ])
         self._viewer_id = (self._module_id, self._window_id)
-        print 'Initialising AtomEyeViewer with module_id %d and window id %s' % self._viewer_id
+        print('Initialising AtomEyeViewer with module_id %d and window id %s' % self._viewer_id)
         viewers[self._viewer_id] = self
         atomeye_window_id = self._atomeye.open_window(self._module_id, icopy, nowindow)
         #assert atomeye_window_id == self._window_id
@@ -455,7 +455,8 @@ class AtomEyeViewer(object):
             self._enter_hook(self._current_atoms)
             n_atom = len(self._current_atoms)
 
-            cell = self._current_atoms.get_cell()
+            # cell = self._current_atoms.get_cell()
+            cell = self._current_atoms.cell.array
             pbc = self._current_atoms.get_pbc()
             pos = self._current_atoms.positions
             
@@ -467,21 +468,21 @@ class AtomEyeViewer(object):
                 arrays = self._current_atoms.properties
             except AttributeError:
                 arrays = {}
-                for key,value in self._current_atoms.arrays.iteritems():
+                for key,value in self._current_atoms.arrays.items():
                     arrays[name_map.get(key,key)] = value
 
             redraw = 1 # FIXME, we should decide if we really have to redraw here
 
         if redraw and self.verbose:
-            print '-'*len(title)
-            print title
-            print '-'*len(title)
-            print 'Number of atoms: %d' % n_atom
-            print 'Fortran indexing: %r' % get_fortran_indexing()
-            print 'Unit cell:'
-            print cell
+            print('-'*len(title))
+            print(title)
+            print('-'*len(title))
+            print('Number of atoms: %d' % n_atom)
+            print('Fortran indexing: %r' % get_fortran_indexing())
+            print('Unit cell:')
+            print(cell)
             self._redraw_hook(self._current_atoms)
-            print '\n'
+            print('\n')
             sys.stdout.flush()
         
         return (redraw, title, n_atom, cell, arrays)
@@ -565,7 +566,7 @@ class AtomEyeViewer(object):
         if not self.is_alive: 
             raise RuntimeError('is_alive is False')
         if self.echo:
-            print command.strip()
+            print(command.strip())
         try:
             self._atomeye.run_command(self._window_id, command)
         except RuntimeError as err:
@@ -617,11 +618,11 @@ class AtomEyeViewer(object):
         are listed on the `AtomEye 3 settings help page
         <http://mt.seas.upenn.edu/Archive/Graphics/A3/A3.html#redraw>`_
         """
-        for k, v in state.iteritems():
+        for k, v in state.items():
             self.setp(k, v)
 
     def set_state(self, state):
-        for key, value in state.iteritems():
+        for key, value in state.items():
             if key == 'variables':
                 self.update(value)
             elif key == 'commands':

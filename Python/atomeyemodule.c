@@ -180,11 +180,20 @@ static int update_atoms_structure(int n_atom, PyObject *cell, PyObject *arrays, 
     /* for key in arrays */
     iterator = PyObject_GetIter(arrays);
     while ((pykey = PyIter_Next(iterator))) {
-      if (!PyString_Check(pykey)) {
+      if (!PyUnicode_Check(pykey)) {
 	PyErr_SetString(PyExc_ValueError, "All keys in arrays must be strings");
 	goto fail;
       }
-      key = PyString_AsString(pykey);
+      PyObject * temp_bytes = PyUnicode_AsEncodedString(pykey, "UTF-8", "strict");
+      if (temp_bytes != NULL) {
+         key = PyBytes_AsString(temp_bytes);
+         if (NULL==key)
+            PyErr_SetString(PyExc_ValueError, "Conversion failed");
+         key = strdup(key);
+         Py_DECREF(temp_bytes);
+      }
+      else
+         PyErr_SetString(PyExc_ValueError, "Conversion failed");
       /* array = arrays[key] */
       if ((array = PyMapping_GetItemString(arrays, key)) == NULL) { 
 	PyErr_Format(PyExc_ValueError, "Error accessing key %s in arrays", key);
@@ -347,7 +356,7 @@ atomeye_open_window(PyObject *self, PyObject *args)
     return NULL;   
   }
 
-  return PyInt_FromLong((long)iw);
+  return PyLong_FromLong((long)iw);
 }
 
 static char atomeye_set_handlers_doc[]=
@@ -468,7 +477,7 @@ atomeye_get_visible(PyObject *self, PyObject *args)
   atomeyelib_get_visible(&n_shown, &idx); //allocates pointer *idx
   list = PyList_New(0);
   for (i = 0; i < n_shown; i++) {
-    entry = PyInt_FromLong(idx[i]);
+    entry = PyLong_FromLong(idx[i]);
     PyList_Append(list, entry);
     Py_DECREF(entry);
   }
@@ -486,9 +495,18 @@ static PyMethodDef atomeye_methods[] = {
   {NULL, NULL}
 };
 
-PyMODINIT_FUNC
-init_atomeye(void)
+static struct PyModuleDef AtomEye =
 {
-  Py_InitModule3("_atomeye", atomeye_methods, atomeye_doc);
-  import_array();
+    PyModuleDef_HEAD_INIT,
+    "_atomeye", /* name of module */
+    atomeye_doc, /* module documentation, may be NULL */
+    1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    atomeye_methods
+};
+
+PyMODINIT_FUNC
+PyInit__atomeye(void)
+{
+    import_array();
+    return PyModule_Create(&AtomEye);
 }
